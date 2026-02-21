@@ -1,0 +1,249 @@
+=====================================================================
+NETWORK PACKET ANALYZER – HOW TO RUN GUIDE (PLAIN TEXT)
+PURPOSE
+
+This guide explains how to build, run, and test the Network Packet Analyzer
+on Linux, macOS, or Windows.
+
+The tool captures live network packets and prints real-time statistics.
+
+=====================================================================
+STEP 0 – SYSTEM REQUIREMENTS
+
+You need:
+
+C++17 compiler (g++ / clang++)
+
+CMake
+
+Boost library
+
+libpcap (Linux/macOS) OR Npcap (Windows)
+
+Root/Administrator privileges (required for packet capture)
+
+=====================================================================
+STEP 1 – INSTALL DEPENDENCIES
+LINUX (Ubuntu/Debian)
+
+Run:
+
+sudo apt update
+sudo apt install build-essential cmake libboost-all-dev libpcap-dev
+
+MACOS (Homebrew)
+
+Run:
+
+brew install boost cmake libpcap
+
+WINDOWS
+
+Install Visual Studio or MinGW
+
+Install CMake
+
+Install Boost
+
+Install Npcap (WinPcap compatible mode enabled)
+
+=====================================================================
+STEP 2 – BUILD THE PROJECT
+
+From project root folder:
+
+mkdir build
+cd build
+cmake ..
+make -j
+
+After build completes:
+
+Executable location:
+build/npa
+
+=====================================================================
+STEP 3 – FIND YOUR NETWORK INTERFACE
+LINUX:
+
+ip link
+
+Example output:
+lo
+eth0
+wlan0
+
+Choose:
+
+eth0 (ethernet)
+
+wlan0 (wifi)
+
+MACOS:
+
+ifconfig
+
+Choose:
+
+en0 or en1
+
+WINDOWS:
+
+Use:
+ipconfig
+
+Check adapter name in Npcap list
+
+=====================================================================
+STEP 4 – BASIC RUN
+
+IMPORTANT:
+Packet capture requires root/admin.
+
+Run:
+
+sudo ./npa --iface eth0
+
+Output:
+Real-time packet statistics will print every second.
+
+=====================================================================
+STEP 5 – COMMON USAGE EXAMPLES
+Capture everything:
+
+sudo ./npa --iface eth0
+
+Capture only TCP:
+
+sudo ./npa --iface eth0 --filter "tcp"
+
+Capture only UDP:
+
+sudo ./npa --iface eth0 --filter "udp"
+
+Verbose mode (print each packet):
+
+sudo ./npa --iface eth0 -v
+
+Save packets to Wireshark file:
+
+sudo ./npa --iface eth0 --pcap-out capture.pcap
+
+Show top talkers:
+
+sudo ./npa --iface eth0 --top-talkers 5
+
+Show top flows:
+
+sudo ./npa --iface eth0 --top-flows 5
+
+Show HTTP hosts:
+
+sudo ./npa --iface eth0 --top-hosts 5
+
+Enable everything together:
+
+sudo ./npa --iface eth0 --filter "tcp or udp" -v --top-talkers 5 --top-flows 5 --top-hosts 5 --pcap-out capture.pcap
+
+=====================================================================
+STEP 6 – GENERATE TEST TRAFFIC
+
+Open another terminal and run:
+
+HTTP traffic:
+
+curl http://example.com
+
+HTTPS traffic:
+
+curl https://google.com
+
+Ping:
+
+ping google.com
+
+Download:
+
+wget http://example.com
+
+These commands generate packets that your analyzer will capture.
+
+=====================================================================
+STEP 7 – VIEW PCAP IN WIRESHARK
+
+If you used:
+
+--pcap-out capture.pcap
+
+Then open:
+
+wireshark capture.pcap
+
+You will see all captured packets exactly like Wireshark.
+
+=====================================================================
+EXPECTED OUTPUT EXAMPLES
+Normal stats:
+
+Interval: packets=42 bytes=40210
+proto: TCP=30 UDP=10 OTHER=2
+
+Verbose packet:
+
+TCP 192.168.1.5:443 -> 142.250.183.14:51234 len=1500
+
+Flow:
+
+TCP 192.168.1.5:443 <-> 142.250.183.14:51234 bytes=18000 pkts=25
+
+HTTP:
+
+HTTP GET / Host=example.com
+
+=====================================================================
+TROUBLESHOOTING
+
+Problem: Permission denied
+Solution:
+Run with sudo
+
+Problem: No packets captured
+Solution:
+
+use correct interface
+
+generate traffic
+
+try removing filter
+
+Problem: capture.pcap empty
+Solution:
+
+ensure traffic exists
+
+check file permissions
+
+Problem: build fails
+Solution:
+Install missing boost/libpcap packages
+
+=====================================================================
+QUICK COMMAND CHEAT SHEET
+
+Build:
+cmake .. && make -j
+
+Run:
+sudo ./npa --iface eth0
+
+Verbose:
+sudo ./npa --iface eth0 -v
+
+Save:
+sudo ./npa --iface eth0 --pcap-out capture.pcap
+
+Test:
+curl http://example.com
+
+=====================================================================
+END

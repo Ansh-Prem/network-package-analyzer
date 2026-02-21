@@ -1,0 +1,398 @@
+=====================================================================
+NETWORK PACKET ANALYZER – COMPLETE PROJECT STRUCTURE + ARCHITECTURE GUIDE
+(MINI WIRESHARK IN C++)
+PROJECT OVERVIEW
+
+This project is a high-performance packet capture and analysis tool
+implemented entirely in modern C++.
+
+It captures packets directly from the network interface using libpcap,
+parses protocol headers manually, performs traffic analytics, and prints
+real-time statistics similar to Wireshark/tcpdump.
+
+The design focuses on:
+
+Networking internals
+
+Systems programming
+
+Async + multithreaded architecture
+
+Clean modular engineering
+
+It demonstrates how real packet analyzers are built at low level.
+
+=====================================================================
+FULL FOLDER STRUCTURE
+
+network-packet-analyzer/
+│
+├── include/npa/
+├── src/
+├── CMakeLists.txt
+└── README.md
+
+=====================================================================
+WHAT EACH FOLDER DOES
+
+include/ → Header files (interfaces, structs, APIs)
+src/ → Implementation files (logic/code)
+CMakeLists → Build configuration
+README → Documentation
+
+=====================================================================
+WHAT EACH FILE DOES (VERY IMPORTANT)
+========================
+include/npa/
+config.hpp
+
+Defines command line configuration.
+Stores:
+
+interface
+
+filter
+
+pcap output file
+
+top talkers
+
+top flows
+
+top hosts
+
+verbose flag
+
+Purpose:
+Separates CLI parsing from core logic.
+
+packet.hpp
+
+Defines PacketInfo structure.
+
+This struct stores parsed packet metadata:
+
+src/dst IP
+
+ports
+
+protocol
+
+size
+
+HTTP info
+
+Purpose:
+Common data format shared across modules.
+
+parser.hpp
+
+Declares parsing function.
+
+Responsible for:
+raw bytes → structured packet
+
+Protocols parsed:
+
+Ethernet
+
+IPv4
+
+TCP
+
+UDP
+
+HTTP Host
+
+stats.hpp
+
+Global counters.
+
+Tracks:
+
+packets
+
+bytes
+
+protocol counts
+
+HTTP request count
+
+Prints periodic reports.
+
+analytics.hpp
+
+Advanced analytics engine.
+
+Tracks:
+
+flows (5-tuple)
+
+top talkers
+
+HTTP hosts
+
+Implements Wireshark-like intelligence.
+
+pcap_capture.hpp
+
+libpcap wrapper.
+
+Handles:
+
+open device
+
+apply filter
+
+capture packets
+
+callback dispatch
+
+pcap_writer.hpp
+
+PCAP export module.
+
+Handles:
+
+open dump file
+
+write packets
+
+close dump
+
+Allows Wireshark compatibility.
+
+util.hpp
+
+Helper utilities.
+
+Functions:
+
+endian conversions
+
+IP formatting
+
+small helpers
+
+========================
+src/
+main.cpp
+
+Program entry point.
+
+Controls:
+
+CLI parsing
+
+thread pool
+
+capture thread
+
+analytics pipeline
+
+printing
+
+shutdown
+
+This is the "brain".
+
+config.cpp
+
+Implements Boost CLI parsing.
+
+parser.cpp
+
+Core networking logic.
+
+Does:
+
+decode headers
+
+parse TCP/UDP
+
+extract payload
+
+extract HTTP Host
+
+This is where protocol knowledge lives.
+
+stats.cpp
+
+Implements counters and periodic reporting.
+
+analytics.cpp
+
+Implements:
+
+flow tracking
+
+top talkers
+
+HTTP hosts
+
+This gives insights, not just raw packets.
+
+pcap_capture.cpp
+
+Uses libpcap to grab packets from OS.
+
+pcap_writer.cpp
+
+Writes packets to capture.pcap.
+
+util.cpp
+
+Implements helper functions.
+
+=====================================================================
+DATA FLOW INSIDE PROGRAM
+
+Step 1:
+NIC receives packet
+
+Step 2:
+libpcap captures frame
+
+Step 3:
+pcap_capture sends raw bytes
+
+Step 4:
+parser converts → PacketInfo
+
+Step 5:
+stats updates counters
+
+Step 6:
+analytics updates:
+flows
+talkers
+hosts
+
+Step 7:
+console prints results
+(optional: saved to pcap file)
+
+=====================================================================
+ARCHITECTURE ASCII DIAGRAM
+             +-------------------+
+             |   Network Card    |
+             +---------+---------+
+                       |
+                       v
+             +-------------------+
+             |    libpcap        |
+             +---------+---------+
+                       |
+                       v
+             +-------------------+
+             |  pcap_capture     |
+             +---------+---------+
+                       |
+                       v
+             +-------------------+
+             |   Parser Pool     |
+             | (Boost.Asio)      |
+             +----+--------+-----+
+                  |        |
+                  v        v
+               Stats   Analytics
+                  |        |
+                  +----+---+
+                       |
+                       v
+                Console / PCAP
+
+=====================================================================
+CALL GRAPH DIAGRAM
+
+main()
+|
+├── parse_args()
+├── start capture thread
+│ └── pcap_capture::run()
+│ └── callback(packet)
+│ └── parse_packet()
+│ └── stats.ingest()
+│ └── analytics.ingest()
+├── timer loop
+│ └── stats.report()
+└── shutdown
+
+=====================================================================
+DEPENDENCY MAP
+
+main
+depends on → everything
+
+stats
+depends on → analytics
+
+analytics
+depends on → packet
+
+parser
+depends on → util
+
+pcap_capture
+depends on → libpcap
+
+pcap_writer
+depends on → libpcap
+
+config
+depends on → Boost.Program_options
+
+=====================================================================
+RESPONSIBILITY SUMMARY
+
+config → CLI parsing
+capture → raw packet acquisition
+parser → protocol decoding
+stats → counters
+analytics → insights
+writer → export
+main → orchestration
+
+=====================================================================
+INTERVIEW-READY EXPLANATION (SIMPLE)
+
+If interviewer asks:
+
+“How does your tool work internally?”
+
+Answer:
+
+I capture packets using libpcap
+
+I parse Ethernet/IP/TCP manually
+
+I convert bytes into structured metadata
+
+I track flows and bandwidth per IP
+
+I run async parsing with thread pool
+
+I optionally export packets to Wireshark
+
+This demonstrates:
+
+networking knowledge
+
+systems programming
+
+performance design
+
+real-world tooling
+
+=====================================================================
+WHERE TO MODIFY WHAT
+
+Change capture → pcap_capture.cpp
+Add new protocol → parser.cpp
+Change stats → stats.cpp
+Add analytics → analytics.cpp
+Add CLI flags → config.cpp
+Control behavior → main.cpp
+
+=====================================================================
+END OF FILE

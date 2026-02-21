@@ -1,0 +1,409 @@
+NETWORK PACKET ANALYZER – FILE STRUCTURE EXPLANATION (PLAIN TEXT)
+PROJECT OVERVIEW
+
+This project is a mini Wireshark-like network analyzer written in C++.
+
+It captures packets directly from the network interface using libpcap,
+parses protocol headers, performs traffic analytics, and prints real-time
+statistics while optionally saving packets to a .pcap file.
+
+The codebase is intentionally modular so that each networking/system
+component is separated cleanly.
+
+=================================================================
+ROOT FOLDER
+
+network-packet-analyzer/
+│
+├── include/
+├── src/
+├── CMakeLists.txt
+└── README.md
+
+Explanation:
+
+include/ → All header files (.hpp)
+src/ → All implementation files (.cpp)
+CMakeLists.txt → Build configuration
+README.md → Documentation
+
+=================================================================
+include/npa/ (HEADER FILES – INTERFACES)
+
+These files define structures, classes, and APIs.
+They DO NOT contain heavy logic — only declarations.
+
+config.hpp
+
+Purpose:
+Handles command line configuration.
+
+Contains:
+
+Config struct
+
+CLI options definitions
+
+Responsible for:
+
+parsing --iface
+
+parsing --filter
+
+parsing --pcap-out
+
+parsing --top-talkers
+
+parsing --top-flows
+
+parsing --top-hosts
+
+verbose flag
+
+Why important:
+Separates CLI logic from business logic.
+
+packet.hpp
+
+Purpose:
+Defines the main PacketInfo structure.
+
+Contains:
+All parsed packet metadata such as:
+
+src IP
+
+dst IP
+
+ports
+
+protocol (TCP/UDP)
+
+packet size
+
+HTTP host (if detected)
+
+Why important:
+Acts as the common data format shared between:
+capture → parser → stats → analytics
+
+parser.hpp
+
+Purpose:
+Declares packet parsing function.
+
+Responsible for:
+
+decoding Ethernet
+
+decoding IPv4
+
+decoding TCP/UDP
+
+extracting HTTP Host header
+
+Why important:
+Separates protocol parsing from capture logic.
+
+stats.hpp
+
+Purpose:
+Tracks global counters.
+
+Responsible for:
+
+packet counts
+
+byte counts
+
+protocol stats
+
+periodic reports
+
+Why important:
+Central place for statistics aggregation.
+
+analytics.hpp
+
+Purpose:
+Advanced traffic analytics.
+
+Responsible for:
+
+flow tracking (5-tuple)
+
+top talkers
+
+top HTTP hosts
+
+Why important:
+Implements Wireshark-like insights.
+
+pcap_capture.hpp
+
+Purpose:
+Wrapper around libpcap.
+
+Responsible for:
+
+opening interface
+
+applying BPF filter
+
+capturing packets
+
+passing packets to callback
+
+Why important:
+Low-level capture logic isolated here.
+
+pcap_writer.hpp
+
+Purpose:
+Exports packets to .pcap file.
+
+Responsible for:
+
+creating dumper
+
+writing packets
+
+making Wireshark-compatible files
+
+Why important:
+Lets users inspect traffic later.
+
+util.hpp
+
+Purpose:
+Small helper functions.
+
+Examples:
+
+read big-endian integers
+
+IP formatting
+
+byte conversions
+
+Why important:
+Avoids code duplication.
+
+=================================================================
+src/ (IMPLEMENTATIONS – LOGIC)
+
+These files contain actual logic.
+
+main.cpp
+
+Purpose:
+Program entry point.
+
+Controls:
+
+startup
+
+parsing CLI args
+
+starting capture thread
+
+starting Boost.Asio thread pool
+
+connecting parser + stats + analytics
+
+periodic printing
+
+graceful shutdown
+
+Flow:
+capture → parse → stats → analytics → output
+
+Think of this as:
+"Application Orchestrator"
+
+config.cpp
+
+Purpose:
+Implements CLI parsing using Boost.Program_options.
+
+Converts:
+command line → Config struct
+
+Keeps:
+main() clean and readable.
+
+parser.cpp
+
+Purpose:
+Protocol decoding engine.
+
+Implements:
+
+Ethernet parsing
+
+IPv4 header extraction
+
+TCP header extraction
+
+UDP header extraction
+
+TCP payload detection
+
+HTTP Host extraction
+
+This is where:
+raw bytes → structured PacketInfo
+
+Core networking knowledge lives here.
+
+stats.cpp
+
+Purpose:
+Implements counters and reporting.
+
+Tracks:
+
+total packets
+
+bytes
+
+protocol split
+
+HTTP request count
+
+Periodically prints:
+human-readable stats
+
+Also forwards packets to analytics module.
+
+analytics.cpp
+
+Purpose:
+Traffic intelligence engine.
+
+Implements:
+
+Flow tracking
+Uses 5-tuple key
+Tracks packets + bytes per conversation
+
+Top talkers
+Tracks IPs with highest traffic
+
+HTTP hosts
+Tracks most requested domains
+
+Provides:
+Top-N queries for stats display
+
+This is what makes the tool “Wireshark-like”.
+
+pcap_capture.cpp
+
+Purpose:
+Actual packet capture using libpcap.
+
+Responsibilities:
+
+open device
+
+apply filter
+
+capture packets
+
+deliver packets via callback
+
+This is closest to OS/network driver level.
+
+pcap_writer.cpp
+
+Purpose:
+Writes packets to .pcap.
+
+Responsibilities:
+
+open dump file
+
+write packets
+
+close file
+
+Allows offline analysis.
+
+util.cpp
+
+Purpose:
+Implements helper functions.
+
+Examples:
+
+endian conversions
+
+IP formatting
+
+Pure utility file.
+
+=================================================================
+DATA FLOW INSIDE PROGRAM
+
+Step 1:
+libpcap captures packet
+
+Step 2:
+pcap_capture sends raw bytes
+
+Step 3:
+parser converts bytes → PacketInfo
+
+Step 4:
+stats updates counters
+
+Step 5:
+analytics updates:
+flows
+talkers
+hosts
+
+Step 6:
+console prints results
+(optional → pcap saved)
+
+Flow Diagram:
+
+NIC
+↓
+pcap_capture
+↓
+parser
+↓
+stats
+↓
+analytics
+↓
+output
+
+=================================================================
+SUMMARY OF RESPONSIBILITIES
+
+config → CLI parsing
+capture → raw packet acquisition
+parser → protocol decoding
+stats → counters
+analytics → insights
+pcap_writer → file export
+main → glue everything together
+
+=================================================================
+QUICK UNDERSTANDING
+
+If you want to modify:
+
+Capture logic → pcap_capture.cpp
+Parsing logic → parser.cpp
+Stats output → stats.cpp
+Flow logic → analytics.cpp
+CLI flags → config.cpp
+App behavior → main.cpp
+
+=================================================================
+END
