@@ -371,8 +371,6 @@ Comparable to:
 
 ---s
 
-# 📜 License
-MIT
 
 ---
 
